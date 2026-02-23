@@ -1,0 +1,2 @@
+export const SUPABASE_TOKEN = Symbol('SUPABASE_TOKEN');
+export const SUPABASE_ADMIN_TOKEN = Symbol('SUPABASE_ADMIN_TOKEN');

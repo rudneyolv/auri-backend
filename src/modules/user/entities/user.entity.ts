@@ -1,7 +1,6 @@
 import {
   Column,
   CreateDateColumn,
-  DeleteDateColumn,
   Entity,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
@@ -21,12 +20,15 @@ export class User {
   @Column({ unique: true })
   auth_id: string;
 
+  @Column({ default: true })
+  is_active: boolean;
+
   @CreateDateColumn()
   created_at: Date;
 
   @UpdateDateColumn()
   updated_at: Date;
 
-  @DeleteDateColumn()
+  @Column({ type: 'timestamp', nullable: true })
   deleted_at?: Date;
 }

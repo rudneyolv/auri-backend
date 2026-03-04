@@ -1,0 +1,1148 @@
+openapi: 3.0.3
+info:
+  title: Auri Backend API
+  version: 1.0.0
+  description: Documentacao OpenAPI da API atual do backend Auri.
+servers:
+  - url: http://localhost:3001
+    description: Local development
+tags:
+  - name: Users
+  - name: Profiles
+  - name: Categories
+  - name: Skills
+paths:
+  /users:
+    post:
+      tags: [Users]
+      summary: Criar usuario
+      description: Cria um usuario no Supabase Auth e na base local.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserDto'
+            examples:
+              default:
+                value:
+                  name: "Ana Silva"
+                  email: "ana@example.com"
+                  password: "12345678"
+      responses:
+        '201':
+          description: Usuario criado com sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+              examples:
+                default:
+                  value:
+                    id: "f57a4c71-87b6-49e3-a5d2-6d72db913bab"
+                    name: "Ana Silva"
+                    email: "ana@example.com"
+                    auth_id: "5f367b86-3110-47f7-a8b3-bf7085f35936"
+                    is_active: true
+                    created_at: "2026-02-24T11:00:00.000Z"
+                    updated_at: "2026-02-24T11:00:00.000Z"
+                    deleted_at: null
+        '400':
+          description: Dados invalidos ou erro de criacao no provedor de auth.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              examples:
+                invalid:
+                  value:
+                    statusCode: 400
+                    message: ["email must be an email"]
+                    error: "Bad Request"
+        '409':
+          description: Email ja utilizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              examples:
+                conflict:
+                  value:
+                    statusCode: 409
+                    message: "Voce nao pode utilizar esse e-mail"
+                    error: "Conflict"
+
+  /profiles/me:
+    get:
+      tags: [Profiles]
+      summary: Buscar meu perfil
+      description: Retorna o perfil completo do usuario autenticado.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Perfil retornado com sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileView'
+              examples:
+                default:
+                  value:
+                    user_id: "f57a4c71-87b6-49e3-a5d2-6d72db913bab"
+                    name: "Ana Silva"
+                    bio: "Cantora e compositora."
+                    profile_picture_url: "https://cdn.example.com/avatar.jpg"
+                    accept_messages_from_non_matches: false
+                    categories:
+                      - user_id: "f57a4c71-87b6-49e3-a5d2-6d72db913bab"
+                        category_id: "1"
+                        is_primary: true
+                        years_experience: 8
+                        proficiency_level: "expert"
+                        created_at: "2026-02-24T11:00:00.000Z"
+                        updated_at: "2026-02-24T11:00:00.000Z"
+                        category:
+                          id: "1"
+                          name: "Vocal"
+                          slug: "vocal"
+                          description: "Canto e performance vocal"
+                          icon_url: null
+                          created_at: "2026-02-24T11:00:00.000Z"
+                    skills:
+                      - user_id: "f57a4c71-87b6-49e3-a5d2-6d72db913bab"
+                        skill_id: "10"
+                        proficiency_level: "advanced"
+                        years_experience: 5
+                        created_at: "2026-02-24T11:00:00.000Z"
+                        updated_at: "2026-02-24T11:00:00.000Z"
+                        skill:
+                          id: "10"
+                          category_id: "2"
+                          name: "Improviso"
+                          slug: "improviso"
+                          description: null
+                          icon_url: null
+                          created_at: "2026-02-24T11:00:00.000Z"
+                          category:
+                            id: "2"
+                            name: "Tecnica Vocal"
+                            slug: "tecnica-vocal"
+                            description: null
+                            icon_url: null
+                            created_at: "2026-02-24T11:00:00.000Z"
+                    genres:
+                      - user_id: "f57a4c71-87b6-49e3-a5d2-6d72db913bab"
+                        genre_id: "3"
+                        is_primary: true
+                        created_at: "2026-02-24T11:00:00.000Z"
+                        genre:
+                          id: "3"
+                          name: "MPB"
+                          slug: "mpb"
+                          category: "main"
+                          search_tags: ["brasil", "popular"]
+                          icon_url: null
+                          color: null
+                          created_at: "2026-02-24T11:00:00.000Z"
+        '401':
+          description: Token ausente/invalido/expirado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              examples:
+                unauthorized:
+                  value:
+                    statusCode: 401
+                    message: "Voce nao tem permissao para acessar este recurso."
+                    error: "Unauthorized"
+        '404':
+          description: Perfil nao encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              examples:
+                notFound:
+                  value:
+                    statusCode: 404
+                    message: "Perfil nao encontrado."
+                    error: "Not Found"
+    delete:
+      tags: [Profiles]
+      summary: Desativar minha conta
+      description: Realiza soft-delete do usuario autenticado (`is_active = false`).
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Conta desativada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessMessage'
+              examples:
+                default:
+                  value:
+                    success: true
+                    message: "Conta desativada com sucesso."
+        '401':
+          description: Nao autorizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: Usuario nao encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  /profiles/{userId}:
+    get:
+      tags: [Profiles]
+      summary: Buscar perfil por userId
+      description: Retorna o perfil publico/completo de um usuario ativo.
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID do usuario.
+      responses:
+        '200':
+          description: Perfil retornado com sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileView'
+        '404':
+          description: Perfil nao encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  /profiles/me/bio:
+    patch:
+      tags: [Profiles]
+      summary: Atualizar minha bio
+      description: Atualiza a bio do perfil do usuario autenticado.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileBioDto'
+            examples:
+              default:
+                value:
+                  bio: "Cantora, compositora e performer."
+      responses:
+        '200':
+          description: Perfil atualizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileView'
+        '400':
+          description: Body invalido (ex.: bio acima de 500 caracteres).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '401':
+          description: Nao autorizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: Usuario/perfil nao encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  /profiles/me/photo:
+    patch:
+      tags: [Profiles]
+      summary: Atualizar minha foto de perfil
+      description: Atualiza `profile_picture_url` do usuario autenticado.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfilePhotoDto'
+            examples:
+              default:
+                value:
+                  profile_picture_url: "https://cdn.example.com/new-avatar.jpg"
+      responses:
+        '200':
+          description: Perfil atualizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileView'
+        '400':
+          description: Body invalido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '401':
+          description: Nao autorizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: Usuario/perfil nao encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  /categories:
+    get:
+      tags: [Categories]
+      summary: Listar categorias
+      description: Retorna todas as categorias de perfil ordenadas por nome.
+      responses:
+        '200':
+          description: Lista de categorias.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Category'
+              examples:
+                default:
+                  value:
+                    - id: "1"
+                      name: "Vocal"
+                      slug: "vocal"
+                      description: "Canto e performance vocal"
+                      icon_url: null
+                      created_at: "2026-02-24T11:00:00.000Z"
+
+  /profiles/{userId}/categories:
+    get:
+      tags: [Categories]
+      summary: Listar categorias do usuario
+      description: Retorna as categorias vinculadas ao perfil do usuario.
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Lista de categorias do usuario.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserProfileCategory'
+
+  /profiles/me/categories:
+    post:
+      tags: [Categories]
+      summary: Adicionar categoria ao meu perfil
+      description: Adiciona uma categoria no perfil do usuario autenticado.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddUserCategoryDto'
+            examples:
+              default:
+                value:
+                  category_id: 1
+                  years_experience: 5
+                  proficiency_level: "advanced"
+                  is_primary: true
+      responses:
+        '201':
+          description: Categoria adicionada; retorna lista atualizada.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserProfileCategory'
+        '400':
+          description: Body invalido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '401':
+          description: Nao autorizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: Categoria inexistente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '409':
+          description: Categoria ja adicionada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  /profiles/me/categories/{categoryId}:
+    patch:
+      tags: [Categories]
+      summary: Atualizar categoria do meu perfil
+      description: Atualiza metadados de uma categoria ja vinculada ao usuario.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: categoryId
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: ID numerico da categoria.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserCategoryDto'
+            examples:
+              default:
+                value:
+                  years_experience: 7
+                  proficiency_level: "expert"
+                  is_primary: true
+      responses:
+        '200':
+          description: Categoria atualizada; retorna lista atualizada.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserProfileCategory'
+        '400':
+          description: Body/parametro invalido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '401':
+          description: Nao autorizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: Categoria do usuario nao encontrada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  /skills:
+    get:
+      tags: [Skills]
+      summary: Listar skills
+      description: Retorna todas as skills disponiveis com filtro opcional por categoria.
+      parameters:
+        - in: query
+          name: category_id
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+          description: Filtra skills por categoria.
+      responses:
+        '200':
+          description: Lista de skills.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Skill'
+        '400':
+          description: category_id invalido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  /skills/categories:
+    get:
+      tags: [Skills]
+      summary: Listar categorias de skills
+      description: Retorna todas as categorias de skills disponiveis.
+      responses:
+        '200':
+          description: Lista de categorias de skills.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SkillCategory'
+
+  /profiles/{userId}/skills:
+    get:
+      tags: [Skills]
+      summary: Listar skills do usuario
+      description: Retorna as skills vinculadas ao perfil do usuario.
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Lista de skills do usuario.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserSkill'
+
+  /profiles/me/skills:
+    post:
+      tags: [Skills]
+      summary: Adicionar skill ao meu perfil
+      description: Adiciona uma skill no perfil do usuario autenticado.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddUserSkillDto'
+            examples:
+              default:
+                value:
+                  skill_id: 10
+                  proficiency_level: "advanced"
+                  years_experience: 5
+      responses:
+        '201':
+          description: Skill adicionada; retorna lista atualizada.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserSkill'
+        '400':
+          description: Body invalido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '401':
+          description: Nao autorizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: Skill inexistente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '409':
+          description: Skill ja adicionada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  /profiles/me/skills/{skillId}:
+    patch:
+      tags: [Skills]
+      summary: Atualizar skill do meu perfil
+      description: Atualiza metadados de uma skill ja vinculada ao usuario.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: skillId
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserSkillDto'
+            examples:
+              default:
+                value:
+                  proficiency_level: "expert"
+                  years_experience: 8
+      responses:
+        '200':
+          description: Skill atualizada; retorna lista atualizada.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserSkill'
+        '400':
+          description: Body/parametro invalido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '401':
+          description: Nao autorizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: Skill do usuario nao encontrada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+    delete:
+      tags: [Skills]
+      summary: Remover skill do meu perfil
+      description: Remove a skill do perfil autenticado.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: skillId
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Skill removida.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessMessage'
+              examples:
+                default:
+                  value:
+                    success: true
+                    message: "Skill removida com sucesso."
+        '400':
+          description: Parametro invalido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '401':
+          description: Nao autorizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: Skill do usuario nao encontrada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+    delete:
+      tags: [Categories]
+      summary: Remover categoria do meu perfil
+      description: Remove a categoria do perfil autenticado, respeitando regra minima de 1 categoria.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: categoryId
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Categoria removida.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessMessage'
+              examples:
+                default:
+                  value:
+                    success: true
+                    message: "Categoria removida com sucesso."
+        '400':
+          description: Nao pode remover unica categoria do perfil.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '401':
+          description: Nao autorizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: Categoria do usuario nao encontrada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    ProficiencyLevel:
+      type: string
+      enum: [beginner, intermediate, advanced, expert]
+
+    GenreCategory:
+      type: string
+      enum: [main, sub, fusion, niche]
+
+    ApiError:
+      type: object
+      properties:
+        statusCode:
+          type: integer
+          example: 400
+        message:
+          oneOf:
+            - type: string
+            - type: array
+              items:
+                type: string
+        error:
+          type: string
+          example: Bad Request
+      required: [statusCode, message]
+
+    SuccessMessage:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+      required: [success, message]
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        auth_id:
+          type: string
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        deleted_at:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+        - id
+        - name
+        - email
+        - auth_id
+        - is_active
+        - created_at
+        - updated_at
+
+    Profile:
+      type: object
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        bio:
+          type: string
+          nullable: true
+          maxLength: 500
+        profile_picture_url:
+          type: string
+          nullable: true
+        accept_messages_from_non_matches:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+        - user_id
+        - accept_messages_from_non_matches
+        - created_at
+        - updated_at
+
+    Category:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        slug:
+          type: string
+        description:
+          type: string
+          nullable: true
+        icon_url:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - slug
+        - created_at
+
+    SkillCategory:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        slug:
+          type: string
+        description:
+          type: string
+          nullable: true
+        icon_url:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - slug
+        - created_at
+
+    Skill:
+      type: object
+      properties:
+        id:
+          type: string
+        category_id:
+          type: string
+          nullable: true
+        category:
+          allOf:
+            - $ref: '#/components/schemas/SkillCategory'
+          nullable: true
+        name:
+          type: string
+        slug:
+          type: string
+        description:
+          type: string
+          nullable: true
+        icon_url:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - slug
+        - created_at
+
+    Genre:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        slug:
+          type: string
+        category:
+          allOf:
+            - $ref: '#/components/schemas/GenreCategory'
+          nullable: true
+        search_tags:
+          type: array
+          items:
+            type: string
+          nullable: true
+        icon_url:
+          type: string
+          nullable: true
+        color:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - slug
+        - created_at
+
+    UserProfileCategory:
+      type: object
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        category_id:
+          type: string
+        is_primary:
+          type: boolean
+        years_experience:
+          type: integer
+          minimum: 0
+          maximum: 100
+        proficiency_level:
+          $ref: '#/components/schemas/ProficiencyLevel'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        category:
+          $ref: '#/components/schemas/Category'
+      required:
+        - user_id
+        - category_id
+        - is_primary
+        - years_experience
+        - proficiency_level
+        - created_at
+        - updated_at
+        - category
+
+    UserSkill:
+      type: object
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        skill_id:
+          type: string
+        proficiency_level:
+          $ref: '#/components/schemas/ProficiencyLevel'
+        years_experience:
+          type: integer
+          minimum: 0
+          maximum: 100
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        skill:
+          $ref: '#/components/schemas/Skill'
+      required:
+        - user_id
+        - skill_id
+        - proficiency_level
+        - created_at
+        - updated_at
+        - skill
+
+    UserGenre:
+      type: object
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        genre_id:
+          type: string
+        is_primary:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        genre:
+          $ref: '#/components/schemas/Genre'
+      required:
+        - user_id
+        - genre_id
+        - is_primary
+        - created_at
+        - genre
+
+    ProfileView:
+      type: object
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        bio:
+          type: string
+          nullable: true
+        profile_picture_url:
+          type: string
+          nullable: true
+        accept_messages_from_non_matches:
+          type: boolean
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserProfileCategory'
+        skills:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserSkill'
+        genres:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserGenre'
+      required:
+        - user_id
+        - name
+        - bio
+        - profile_picture_url
+        - accept_messages_from_non_matches
+        - categories
+        - skills
+        - genres
+
+    CreateUserDto:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+      required: [name, email, password]
+
+    UpdateProfileBioDto:
+      type: object
+      properties:
+        bio:
+          type: string
+          maxLength: 500
+      required: [bio]
+
+    UpdateProfilePhotoDto:
+      type: object
+      properties:
+        profile_picture_url:
+          type: string
+      required: [profile_picture_url]
+
+    AddUserCategoryDto:
+      type: object
+      properties:
+        category_id:
+          type: integer
+          minimum: 1
+        years_experience:
+          type: integer
+          minimum: 0
+          maximum: 100
+        proficiency_level:
+          $ref: '#/components/schemas/ProficiencyLevel'
+        is_primary:
+          type: boolean
+      required: [category_id, years_experience, proficiency_level, is_primary]
+
+    UpdateUserCategoryDto:
+      type: object
+      properties:
+        years_experience:
+          type: integer
+          minimum: 0
+          maximum: 100
+        proficiency_level:
+          $ref: '#/components/schemas/ProficiencyLevel'
+        is_primary:
+          type: boolean
+
+    AddUserSkillDto:
+      type: object
+      properties:
+        skill_id:
+          type: integer
+          minimum: 1
+        proficiency_level:
+          $ref: '#/components/schemas/ProficiencyLevel'
+        years_experience:
+          type: integer
+          minimum: 0
+          maximum: 100
+      required: [skill_id, proficiency_level]
+
+    UpdateUserSkillDto:
+      type: object
+      properties:
+        proficiency_level:
+          $ref: '#/components/schemas/ProficiencyLevel'
+        years_experience:
+          type: integer
+          minimum: 0
+          maximum: 100

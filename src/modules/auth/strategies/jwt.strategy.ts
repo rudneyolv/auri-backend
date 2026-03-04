@@ -1,9 +1,10 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
-import { AuthJwtPayload } from '../types/jwt.types';
-import { User } from 'src/modules/user/entities/user.entity';
-import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PassportStrategy } from '@nestjs/passport';
+import { ExtractJwt, Strategy } from 'passport-jwt';
+import JwksRsa from 'jwks-rsa';
+import { User } from 'src/modules/user/entities/user.entity';
 import { UserService } from 'src/modules/user/user.service';
+import { AuthJwtPayload } from '../types/jwt.types';
 
 @Injectable()
 export class AuthJwtStrategy extends PassportStrategy(
@@ -11,18 +12,24 @@ export class AuthJwtStrategy extends PassportStrategy(
   'supabase-jwt',
 ) {
   constructor(private readonly userService: UserService) {
-    const supabaseSecret = process.env.SUPABASE_JWT_SECRET;
+    const supabaseProjectId = process.env.SUPABASE_PROJECT_ID;
 
-    if (!supabaseSecret) {
+    if (!supabaseProjectId) {
       throw new InternalServerErrorException(
-        'A variável de ambiente SUPABASE_JWT_SECRET precisa ser configurada.',
+        'A variavel de ambiente SUPABASE_PROJECT_ID precisa ser configurada.',
       );
     }
 
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: supabaseSecret,
+      algorithms: ['ES256'],
+      secretOrKeyProvider: JwksRsa.passportJwtSecret({
+        cache: true,
+        rateLimit: true,
+        jwksRequestsPerMinute: 5,
+        jwksUri: `https://${supabaseProjectId}.supabase.co/auth/v1/.well-known/jwks.json`,
+      }),
     });
   }
 

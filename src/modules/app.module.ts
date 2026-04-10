@@ -9,6 +9,7 @@ import { CategoriesModule } from './categories/categories.module';
 import { SkillsModule } from './skills/skills.module';
 import { GenresModule } from './genres/genres.module';
 import { VideosModule } from './videos/videos.module';
+import { DiscoveryModule } from './discovery/discovery.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { VideosModule } from './videos/videos.module';
     SkillsModule,
     GenresModule,
     VideosModule,
+    DiscoveryModule,
   ],
   controllers: [],
 })

@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Profile } from './entities/profile.entity';
@@ -6,6 +10,7 @@ import { User } from '../user/entities/user.entity';
 import { UserProfileCategory } from '../categories/entities/user-profile-category.entity';
 import { UserSkill } from '../skills/entities/user-skill.entity';
 import { UserGenre } from '../genres/entities/user-genre.entity';
+import { UpdateCollabPrefsDto } from './dto/update-collab-prefs.dto';
 
 @Injectable()
 export class ProfilesService {
@@ -109,6 +114,51 @@ export class ProfilesService {
 
     await this.profileRepo.save(profile);
     return this.findByUserId(userId);
+  }
+
+  async updateCollabPrefs(userId: string, dto: UpdateCollabPrefsDto) {
+    const profile = await this.getOrCreateProfile(userId);
+
+    const collabPriceMin =
+      dto.collab_price_min !== undefined
+        ? dto.collab_price_min
+        : (profile.collab_price_min ?? null);
+    const collabPriceMax =
+      dto.collab_price_max !== undefined
+        ? dto.collab_price_max
+        : (profile.collab_price_max ?? null);
+
+    if (collabPriceMin !== null && collabPriceMax === null) {
+      throw new BadRequestException(
+        'collab_price_max e obrigatorio quando collab_price_min estiver definido.',
+      );
+    }
+
+    if (collabPriceMin === null && collabPriceMax !== null) {
+      throw new BadRequestException(
+        'collab_price_min e obrigatorio quando collab_price_max estiver definido.',
+      );
+    }
+
+    if (
+      collabPriceMin !== null &&
+      collabPriceMax !== null &&
+      collabPriceMax < collabPriceMin
+    ) {
+      throw new BadRequestException(
+        'collab_price_max deve ser maior ou igual a collab_price_min.',
+      );
+    }
+
+    profile.collab_price_min = collabPriceMin;
+    profile.collab_price_max = collabPriceMax;
+
+    const updatedProfile = await this.profileRepo.save(profile);
+
+    return {
+      collab_price_min: updatedProfile.collab_price_min ?? null,
+      collab_price_max: updatedProfile.collab_price_max ?? null,
+    };
   }
 
   async deleteMe(userId: string) {

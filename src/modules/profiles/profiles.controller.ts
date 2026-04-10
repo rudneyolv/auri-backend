@@ -13,6 +13,7 @@ import { CurrentUser } from '../auth/decorators/current-user';
 import { User } from '../user/entities/user.entity';
 import { UpdateProfileBioDto } from './dto/update-profile-bio.dto';
 import { UpdateProfilePhotoDto } from './dto/update-profile-photo.dto';
+import { UpdateCollabPrefsDto } from './dto/update-collab-prefs.dto';
 
 @Controller('profiles')
 export class ProfilesController {
@@ -47,6 +48,18 @@ export class ProfilesController {
     return this.profilesService.updatePhoto(
       user.id,
       updateProfilePhotoDto.profile_picture_url,
+    );
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('me/collab-prefs')
+  updateMyCollabPrefs(
+    @CurrentUser() user: User,
+    @Body() updateCollabPrefsDto: UpdateCollabPrefsDto,
+  ) {
+    return this.profilesService.updateCollabPrefs(
+      user.id,
+      updateCollabPrefsDto,
     );
   }
 

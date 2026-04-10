@@ -15,6 +15,7 @@ describe('ProfilesController', () => {
             findByUserId: jest.fn(),
             updateBio: jest.fn(),
             updatePhoto: jest.fn(),
+            updateCollabPrefs: jest.fn(),
             deleteMe: jest.fn(),
           },
         },

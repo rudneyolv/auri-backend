@@ -28,6 +28,13 @@ interface DiscoveryRawRow {
   primary_category_years_experience: string;
 }
 
+interface DiscoverySkillRow {
+  user_id: string;
+  name: string;
+  proficiency_level: string;
+  years_experience: string | null;
+}
+
 @Injectable()
 export class DiscoveryService {
   constructor(
@@ -147,21 +154,38 @@ export class DiscoveryService {
   }
 
   private async findSkillsByUserIds(userIds: string[]) {
-    const skillsByUserId = new Map<string, { name: string }[]>();
+    const skillsByUserId = new Map<
+      string,
+      {
+        name: string;
+        proficiency_level: string;
+        years_experience: number | null;
+      }[]
+    >();
     if (userIds.length === 0) return skillsByUserId;
 
     const rows = await this.userSkillRepo
       .createQueryBuilder('us')
       .innerJoin(Skill, 's', 's.id = us.skill_id')
-      .select(['us.user_id AS user_id', 's.name AS name'])
+      .select([
+        'us.user_id AS user_id',
+        's.name AS name',
+        'us.proficiency_level AS proficiency_level',
+        'us.years_experience AS years_experience',
+      ])
       .where('us.user_id IN (:...userIds)', { userIds })
       .orderBy('us.user_id', 'ASC')
       .addOrderBy('us.created_at', 'ASC')
-      .getRawMany<{ user_id: string; name: string }>();
+      .getRawMany<DiscoverySkillRow>();
 
     for (const row of rows) {
       const skills = skillsByUserId.get(row.user_id) ?? [];
-      skills.push({ name: row.name });
+      skills.push({
+        name: row.name,
+        proficiency_level: row.proficiency_level,
+        years_experience:
+          row.years_experience !== null ? Number(row.years_experience) : null,
+      });
       skillsByUserId.set(row.user_id, skills);
     }
 

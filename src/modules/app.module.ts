@@ -10,6 +10,7 @@ import { SkillsModule } from './skills/skills.module';
 import { GenresModule } from './genres/genres.module';
 import { VideosModule } from './videos/videos.module';
 import { DiscoveryModule } from './discovery/discovery.module';
+import { CollabModule } from './collab/collab.module';
 
 @Module({
   imports: [
@@ -34,6 +35,11 @@ import { DiscoveryModule } from './discovery/discovery.module';
         ttl: 3_600_000,
         limit: 5,
       },
+      {
+        name: 'collab',
+        ttl: 3_600_000,
+        limit: 20,
+      },
     ]),
     UserModule,
     AuthModule,
@@ -43,6 +49,7 @@ import { DiscoveryModule } from './discovery/discovery.module';
     GenresModule,
     VideosModule,
     DiscoveryModule,
+    CollabModule,
   ],
   controllers: [],
 })

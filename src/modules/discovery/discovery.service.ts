@@ -97,25 +97,6 @@ export class DiscoveryService {
       );
     }
 
-    const [sql, params] = qb
-
-      .clone()
-      .select([
-        'u.id AS user_id',
-        'u.name AS name',
-        'u.created_at AS created_at',
-        'p.profile_picture_url AS profile_picture_url',
-        'p.collab_price_min AS collab_price_min',
-        'p.collab_price_max AS collab_price_max',
-        'pc.name AS primary_category_name',
-        'upc.proficiency_level AS primary_category_proficiency_level',
-        'upc.years_experience AS primary_category_years_experience',
-      ])
-      .orderBy('u.created_at', 'DESC')
-      .addOrderBy('u.id', 'DESC')
-      .limit(dto.limit)
-      .getQueryAndParameters();
-
     const rawRows = await qb
       .select([
         'u.id AS user_id',

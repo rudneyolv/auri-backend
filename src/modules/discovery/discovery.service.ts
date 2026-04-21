@@ -26,6 +26,7 @@ interface DiscoveryRawRow {
   primary_category_name: string;
   primary_category_proficiency_level: string;
   primary_category_years_experience: string;
+  created_at: Date;
 }
 
 interface DiscoverySkillRow {
@@ -46,7 +47,13 @@ export class DiscoveryService {
     private readonly userGenreRepo: Repository<UserGenre>,
   ) {}
 
-  async findProfiles(currentUserId: string, dto: DiscoveryFiltersDto) {
+  async findProfiles({
+    currentUserId,
+    filters: dto,
+  }: {
+    currentUserId: string;
+    filters: DiscoveryFiltersDto;
+  }) {
     const qb = this.userRepo
       .createQueryBuilder('u')
       .innerJoin(Profile, 'p', 'p.user_id = u.id')
@@ -80,12 +87,23 @@ export class DiscoveryService {
       maxPrice: dto.max_price,
     });
 
-    const total = await qb.clone().getCount();
+    if (dto.cursor) {
+      qb.andWhere(
+        '(u.created_at < :cursorCreatedAt OR (u.created_at = :cursorCreatedAt AND u.id < :cursorId))',
+        {
+          cursorCreatedAt: new Date(dto.cursor.created_at),
+          cursorId: dto.cursor.id,
+        },
+      );
+    }
 
-    const rawRows = await qb
+    const [sql, params] = qb
+
+      .clone()
       .select([
         'u.id AS user_id',
         'u.name AS name',
+        'u.created_at AS created_at',
         'p.profile_picture_url AS profile_picture_url',
         'p.collab_price_min AS collab_price_min',
         'p.collab_price_max AS collab_price_max',
@@ -94,8 +112,25 @@ export class DiscoveryService {
         'upc.years_experience AS primary_category_years_experience',
       ])
       .orderBy('u.created_at', 'DESC')
+      .addOrderBy('u.id', 'DESC')
       .limit(dto.limit)
-      .offset((dto.page - 1) * dto.limit)
+      .getQueryAndParameters();
+
+    const rawRows = await qb
+      .select([
+        'u.id AS user_id',
+        'u.name AS name',
+        'u.created_at AS created_at',
+        'p.profile_picture_url AS profile_picture_url',
+        'p.collab_price_min AS collab_price_min',
+        'p.collab_price_max AS collab_price_max',
+        'pc.name AS primary_category_name',
+        'upc.proficiency_level AS primary_category_proficiency_level',
+        'upc.years_experience AS primary_category_years_experience',
+      ])
+      .orderBy('u.created_at', 'DESC')
+      .addOrderBy('u.id', 'DESC')
+      .limit(dto.limit)
       .getRawMany<DiscoveryRawRow>();
 
     const userIds = rawRows.map((row) => row.user_id);
@@ -103,6 +138,18 @@ export class DiscoveryService {
       this.findGenresByUserIds(userIds),
       this.findSkillsByUserIds(userIds),
     ]);
+
+    const lastRow = rawRows.length > 0 ? rawRows[rawRows.length - 1] : null;
+    const nextCursor =
+      lastRow && rawRows.length === dto.limit
+        ? {
+            created_at:
+              lastRow.created_at instanceof Date
+                ? lastRow.created_at.toISOString()
+                : String(lastRow.created_at),
+            id: lastRow.user_id,
+          }
+        : null;
 
     return {
       data: rawRows.map((row) => ({
@@ -123,10 +170,7 @@ export class DiscoveryService {
         collab_request_status: null,
       })),
       meta: {
-        page: dto.page,
-        limit: dto.limit,
-        total,
-        totalPages: total > 0 ? Math.ceil(total / dto.limit) : 0,
+        nextCursor,
       },
     };
   }

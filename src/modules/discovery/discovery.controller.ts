@@ -15,6 +15,9 @@ export class DiscoveryController {
     @CurrentUser() user: User,
     @Query() discoveryFiltersDto: DiscoveryFiltersDto,
   ) {
-    return this.discoveryService.findProfiles(user.id, discoveryFiltersDto);
+    return this.discoveryService.findProfiles({
+      currentUserId: user.id,
+      filters: discoveryFiltersDto,
+    });
   }
 }

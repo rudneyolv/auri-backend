@@ -1,6 +1,7 @@
 import { Transform, Type, plainToInstance } from 'class-transformer';
 import {
   IsArray,
+  IsDateString,
   IsIn,
   IsInt,
   IsOptional,
@@ -23,6 +24,14 @@ export class ScopedFilterDto {
   proficiency_level?: ProficiencyLevel;
 }
 
+export class DiscoveryCursorDto {
+  @IsDateString()
+  created_at!: string;
+
+  @IsUUID()
+  id!: string;
+}
+
 function parseJsonQueryParam(value: unknown): unknown {
   if (value === undefined) return undefined;
   if (Array.isArray(value)) return value;
@@ -39,6 +48,20 @@ function parseJsonQueryParam(value: unknown): unknown {
       .split(',')
       .map((s) => s.trim())
       .filter(Boolean);
+  }
+}
+
+function parseJsonObjectQueryParam(value: unknown): unknown {
+  if (value === undefined) return undefined;
+  if (typeof value === 'object' && value !== null) return value;
+  if (typeof value !== 'string') return value;
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  try {
+    const parsed: unknown = JSON.parse(trimmed);
+    return parsed;
+  } catch {
+    return value;
   }
 }
 
@@ -82,10 +105,14 @@ export class DiscoveryFiltersDto {
   max_price?: number;
 
   @IsOptional()
-  @IsInt()
-  @Min(1)
-  @Type(() => Number)
-  page: number = 1;
+  @ValidateNested()
+  @Transform(({ value }) => {
+    const parsed = parseJsonObjectQueryParam(value);
+    if (parsed === undefined || parsed === null) return undefined;
+    if (typeof parsed !== 'object') return parsed;
+    return plainToInstance(DiscoveryCursorDto, parsed);
+  })
+  cursor?: DiscoveryCursorDto;
 
   @IsOptional()
   @IsInt()

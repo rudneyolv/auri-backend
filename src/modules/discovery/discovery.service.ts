@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ProfileCategory } from '../categories/entities/profile-category.entity';
 import { UserProfileCategory } from '../categories/entities/user-profile-category.entity';
+import { CollabRequest } from '../collab/entities/collab-request.entity';
 import { Genre } from '../genres/entities/genre.entity';
 import { UserGenre } from '../genres/entities/user-genre.entity';
 import { Profile } from '../profiles/entities/profile.entity';
@@ -23,6 +24,7 @@ interface DiscoveryRawRow {
   profile_picture_url: string | null;
   collab_price_min: string | null;
   collab_price_max: string | null;
+  collab_request_status: 'pending' | 'accepted' | null;
   primary_category_name: string;
   primary_category_proficiency_level: string;
   primary_category_years_experience: string;
@@ -63,6 +65,12 @@ export class DiscoveryService {
         'upc.user_id = u.id AND upc.is_primary = true',
       )
       .innerJoin(ProfileCategory, 'pc', 'pc.id = upc.category_id')
+      .leftJoin(
+        CollabRequest,
+        'cr',
+        '((cr.from_user_id = :currentUserId AND cr.to_user_id = u.id) OR (cr.from_user_id = u.id AND cr.to_user_id = :currentUserId))',
+        { currentUserId },
+      )
       .where('u.is_active = true')
       .andWhere('u.id != :currentUserId', { currentUserId });
 
@@ -105,6 +113,7 @@ export class DiscoveryService {
         'p.profile_picture_url AS profile_picture_url',
         'p.collab_price_min AS collab_price_min',
         'p.collab_price_max AS collab_price_max',
+        "CASE WHEN cr.status IN ('pending', 'accepted') THEN cr.status ELSE NULL END AS collab_request_status",
         'pc.name AS primary_category_name',
         'upc.proficiency_level AS primary_category_proficiency_level',
         'upc.years_experience AS primary_category_years_experience',
@@ -148,7 +157,7 @@ export class DiscoveryService {
           row.collab_price_min !== null ? Number(row.collab_price_min) : null,
         collab_price_max:
           row.collab_price_max !== null ? Number(row.collab_price_max) : null,
-        collab_request_status: null,
+        collab_request_status: row.collab_request_status,
       })),
       meta: {
         nextCursor,

@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ProfileCategory } from '../categories/entities/profile-category.entity';
 import { UserProfileCategory } from '../categories/entities/user-profile-category.entity';
+import { CollabRequest } from '../collab/entities/collab-request.entity';
 import { Genre } from '../genres/entities/genre.entity';
 import { UserGenre } from '../genres/entities/user-genre.entity';
 import { Profile } from '../profiles/entities/profile.entity';
@@ -22,6 +23,7 @@ import { DiscoveryService } from './discovery.service';
       UserSkill,
       Genre,
       UserGenre,
+      CollabRequest,
     ]),
   ],
   controllers: [DiscoveryController],

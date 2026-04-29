@@ -11,6 +11,7 @@ import { GenresModule } from './genres/genres.module';
 import { VideosModule } from './videos/videos.module';
 import { DiscoveryModule } from './discovery/discovery.module';
 import { CollabModule } from './collab/collab.module';
+import { EventsModule } from 'src/modules/event/event.module';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { CollabModule } from './collab/collab.module';
     VideosModule,
     DiscoveryModule,
     CollabModule,
+    EventsModule,
   ],
   controllers: [],
 })

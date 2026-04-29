@@ -20,15 +20,18 @@ export class AuthJwtStrategy extends PassportStrategy(
       );
     }
 
+    const issuer = `https://${supabaseProjectId}.supabase.co/auth/v1`;
+
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
       algorithms: ['ES256'],
+      issuer,
       secretOrKeyProvider: JwksRsa.passportJwtSecret({
         cache: true,
         rateLimit: true,
         jwksRequestsPerMinute: 5,
-        jwksUri: `https://${supabaseProjectId}.supabase.co/auth/v1/.well-known/jwks.json`,
+        jwksUri: `${issuer}/.well-known/jwks.json`,
       }),
     });
   }

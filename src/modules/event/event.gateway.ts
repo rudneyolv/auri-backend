@@ -5,6 +5,7 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import { DefaultEventsMap, Server } from 'socket.io';
+import { extractSocketToken } from 'src/shared/utils/extract-socket-token';
 import { AuthService } from '../auth/auth.service';
 import { AuthenticatedSocket, ServerEvents } from './types/socket.types';
 
@@ -20,7 +21,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   async handleConnection(client: AuthenticatedSocket) {
     try {
-      const token = this.extractToken(client);
+      const token = extractSocketToken(client);
       const payload = await this.authService.verifyToken(token);
 
       if (typeof payload.sub !== 'string') {
@@ -51,15 +52,5 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
         p: Parameters<ServerEvents[K]>[0],
       ) => boolean
     )(event, payload);
-  }
-
-  private extractToken(client: AuthenticatedSocket): string {
-    const token = client.handshake.auth?.token as string | undefined;
-
-    if (typeof token !== 'string' || token.trim().length === 0) {
-      throw new Error('Missing websocket token.');
-    }
-
-    return token;
   }
 }

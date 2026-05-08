@@ -8,6 +8,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { QueryFailedError, Repository } from 'typeorm';
 import { ProfileCategory } from '../categories/entities/profile-category.entity';
 import { UserProfileCategory } from '../categories/entities/user-profile-category.entity';
+import { EventsService } from '../event/event.service';
+import { ConversationsService } from '../message/services/conversations.service';
 import { Profile } from '../profiles/entities/profile.entity';
 import { User } from '../user/entities/user.entity';
 import {
@@ -21,7 +23,7 @@ import {
   CollabRequest,
   type CollabRequestStatus,
 } from './entities/collab-request.entity';
-import { normalizePair } from './utils/normalize-pair';
+import { normalizePair } from 'src/shared/utils/normalize-pair';
 
 interface CollabListRow {
   request_id: string;
@@ -46,6 +48,11 @@ export class CollabService {
     private readonly collabRequestRepo: Repository<CollabRequest>,
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
+    @InjectRepository(Profile)
+    private readonly profileRepo: Repository<Profile>,
+
+    private readonly conversationsService: ConversationsService,
+    private readonly eventsService: EventsService,
   ) {}
 
   async sendRequest(currentUserId: string, dto: SendCollabRequestDto) {
@@ -229,10 +236,34 @@ export class CollabService {
 
       const updatedRequest = await this.collabRequestRepo.save(collabRequest);
 
+      const conversation = await this.conversationsService.createForCollab({
+        collabRequestId: updatedRequest.id,
+        userAId: updatedRequest.user_a_id,
+        userBId: updatedRequest.user_b_id,
+      });
+
+      const [acceptingUser, acceptingProfile] = await Promise.all([
+        this.userRepo.findOneBy({ id: currentUserId }),
+        this.profileRepo.findOneBy({ user_id: currentUserId }),
+      ]);
+
+      this.eventsService.emitCollabAccepted({
+        userId: updatedRequest.from_user_id,
+        payload: {
+          conversation_id: conversation.id,
+          from_user: {
+            user_id: currentUserId,
+            name: acceptingUser?.name ?? '',
+            profile_picture_url: acceptingProfile?.profile_picture_url ?? null,
+          },
+        },
+      });
+
       return {
         request_id: updatedRequest.id,
         status: updatedRequest.status,
         updated_at: updatedRequest.updated_at,
+        conversation_id: conversation.id,
       };
     }
 

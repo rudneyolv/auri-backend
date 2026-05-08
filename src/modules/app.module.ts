@@ -12,6 +12,7 @@ import { VideosModule } from './videos/videos.module';
 import { DiscoveryModule } from './discovery/discovery.module';
 import { CollabModule } from './collab/collab.module';
 import { EventsModule } from 'src/modules/event/event.module';
+import { MessagesModule } from './message/message.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { EventsModule } from 'src/modules/event/event.module';
     DiscoveryModule,
     CollabModule,
     EventsModule,
+    MessagesModule,
   ],
   controllers: [],
 })

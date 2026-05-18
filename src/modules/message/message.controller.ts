@@ -32,6 +32,17 @@ export class MessagesController {
     return this.conversationsService.listForUser({ currentUserId: user.id });
   }
 
+  @Get(':conversationId')
+  getConversation(
+    @CurrentUser() user: User,
+    @Param('conversationId', ParseUUIDPipe) conversationId: string,
+  ) {
+    return this.conversationsService.findOneForUser({
+      currentUserId: user.id,
+      conversationId,
+    });
+  }
+
   @Get(':conversationId/messages')
   listMessages(
     @CurrentUser() user: User,

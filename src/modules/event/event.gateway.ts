@@ -7,6 +7,7 @@ import {
 import { DefaultEventsMap, Server } from 'socket.io';
 import { extractSocketToken } from 'src/shared/utils/extract-socket-token';
 import { AuthService } from '../auth/auth.service';
+import { UserService } from '../user/user.service';
 import { AuthenticatedSocket, ServerEvents } from './types/socket.types';
 
 @WebSocketGateway({
@@ -17,7 +18,10 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server!: Server<DefaultEventsMap, ServerEvents>;
 
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly userService: UserService,
+  ) {}
 
   async handleConnection(client: AuthenticatedSocket) {
     try {
@@ -28,8 +32,13 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
         throw new Error('Invalid token payload: missing sub claim.');
       }
 
-      client.data.userId = payload.sub;
-      await client.join(`user:${payload.sub}`);
+      // O 'sub' do JWT do Supabase é o auth_id. A identidade canônica
+      // no resto do backend (conversations.user_a_id, etc.) é User.id.
+      // Resolver aqui mantém a sala do socket consistente com os emits.
+      const user = await this.userService.findOneByOrFail({ auth_id: payload.sub });
+
+      client.data.userId = user.id;
+      await client.join(`user:${user.id}`);
     } catch {
       client.disconnect();
     }

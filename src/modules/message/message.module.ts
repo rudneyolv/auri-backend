@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from '../auth/auth.module';
 import { EventsModule } from '../event/event.module';
 import { User } from '../user/entities/user.entity';
+import { UserModule } from '../user/user.module';
 import { Conversation } from './entities/conversation.entity';
 import { Message } from './entities/message.entity';
 import { MessagesController } from './message.controller';
@@ -14,6 +15,7 @@ import { MessagesService } from './services/messages.service';
   imports: [
     AuthModule,
     EventsModule,
+    UserModule,
     TypeOrmModule.forFeature([Conversation, Message, User]),
   ],
   controllers: [MessagesController],

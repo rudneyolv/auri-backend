@@ -9,6 +9,7 @@ import {
 } from '@nestjs/websockets';
 import { Server } from 'socket.io';
 import { AuthService } from 'src/modules/auth/auth.service';
+import { UserService } from 'src/modules/user/user.service';
 import { extractSocketToken } from 'src/shared/utils/extract-socket-token';
 import type {
   AuthenticatedMessagesSocket,
@@ -29,6 +30,7 @@ export class MessagesGateway
 
   constructor(
     private readonly authService: AuthService,
+    private readonly userService: UserService,
     private readonly conversationsService: ConversationsService,
   ) {}
 
@@ -41,7 +43,10 @@ export class MessagesGateway
         throw new Error('Invalid token payload: missing sub claim.');
       }
 
-      client.data.userId = payload.sub;
+      // Resolve auth_id (do JWT) → User.id (identidade canônica usada
+      // em conversation.user_a_id/user_b_id e nas asserções de participante).
+      const user = await this.userService.findOneByOrFail({ auth_id: payload.sub });
+      client.data.userId = user.id;
     } catch {
       client.disconnect();
     }

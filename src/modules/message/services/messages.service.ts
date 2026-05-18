@@ -127,8 +127,10 @@ export class MessagesService {
       userId: otherUserId,
       payload: {
         conversation_id: conversationId,
+        sender_id: currentUserId,
         sender_name: sender?.name ?? '',
         preview: message.content.slice(0, 60),
+        created_at: message.created_at.toISOString(),
       },
     });
 

@@ -160,6 +160,68 @@ export class ConversationsService {
     };
   }
 
+  async findOneForUser({
+    currentUserId,
+    conversationId,
+  }: {
+    currentUserId: string;
+    conversationId: string;
+  }) {
+    const conversation = await this.assertParticipantById({
+      currentUserId,
+      conversationId,
+    });
+
+    const otherUserId =
+      conversation.user_a_id === currentUserId
+        ? conversation.user_b_id
+        : conversation.user_a_id;
+
+    const [otherUserRow, lastMessage, unreadCountRow] = await Promise.all([
+      this.userRepo
+        .createQueryBuilder('u')
+        .select('u.id', 'user_id')
+        .addSelect('u.name', 'name')
+        .addSelect('p.profile_picture_url', 'profile_picture_url')
+        .leftJoin('profiles', 'p', 'p.user_id = u.id')
+        .where('u.id = :uid', { uid: otherUserId })
+        .getRawOne<OtherUserRow>(),
+
+      this.messageRepo
+        .createQueryBuilder('m')
+        .where('m.conversation_id = :conversationId', { conversationId })
+        .orderBy('m.created_at', 'DESC')
+        .limit(1)
+        .getOne(),
+
+      this.messageRepo
+        .createQueryBuilder('m')
+        .select('COUNT(*)', 'count')
+        .where('m.conversation_id = :conversationId', { conversationId })
+        .andWhere('m.is_read = false')
+        .andWhere('m.sender_id != :uid', { uid: currentUserId })
+        .getRawOne<{ count: string }>(),
+    ]);
+
+    return {
+      conversation_id: conversation.id,
+      other_user: {
+        user_id: otherUserId,
+        name: otherUserRow?.name ?? null,
+        profile_picture_url: otherUserRow?.profile_picture_url ?? null,
+      },
+      last_message: lastMessage
+        ? {
+            content: lastMessage.content.slice(0, 60),
+            sender_id: lastMessage.sender_id,
+            created_at: lastMessage.created_at,
+          }
+        : null,
+      unread_count: Number(unreadCountRow?.count ?? 0),
+      last_message_at: conversation.last_message_at ?? null,
+    };
+  }
+
   async archiveForUser({
     currentUserId,
     conversationId,
